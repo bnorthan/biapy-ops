@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "biapy-ops"
+version = "0.1.0.dev0"
+description = "BiaPy's model inference and post-processing, as ops"
+readme = "README.md"
+license = "MIT"  # BiaPy's own license, so code can move between the two freely
+authors = [{ name = "Brian Northan", email = "bnorthan@gmail.com" }]
+requires-python = ">=3.10"
+# Only what declaring the ops needs. BiaPy, PyTorch and the rest live in the
+# op environment, under envs/.
+dependencies = ["opspec>=0.1.0.dev0", "ophelper>=0.1.0.dev0", "numpy"]
+
+# Says "the package biapy_ops is a collection of ops, called biapy-ops", so a
+# front end lists it without being told.
+[project.entry-points."opspec.collections"]
+biapy-ops = "biapy_ops"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/biapy_ops"]
+
+# Each op's environment is built from envs/<env-id>/pixi.toml; a wheel
+# carries them inside the package, where the runner looks for them.
+[tool.hatch.build.targets.wheel.force-include]
+"envs" = "biapy_ops/envs"
+
+[dependency-groups]
+dev = ["pytest"]
+# What examples/ needs: a runner (oprunner), scikit-ops' ops, and Jupyter.
+examples = ["oprunner", "scikit-ops", "ipykernel", "matplotlib", "nbconvert", "scikit-image", "pooch"]
+
+[tool.uv.sources]
+# The sibling checkout while opspec is unreleased.
+opspec = { path = "../scikit-ops/opspec", editable = true }
+ophelper = { path = "../scikit-ops/ophelper", editable = true }
+oprunner = { path = "../scikit-ops/oprunner", editable = true }
+scikit-ops = { path = "../scikit-ops", editable = true }
+
+[tool.uv]
+default-groups = ["dev", "examples"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers -m 'not env'"
+markers = ["env: builds and runs in the biapy environment (slow; several GB the first time)"]

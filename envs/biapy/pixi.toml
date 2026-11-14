@@ -1,0 +1,41 @@
+[workspace]
+name = "biapy"
+description = "BiaPy, with PyTorch: BioImage Model Zoo inference and BiaPy's post-processing."
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
+version = "0.1.0"
+
+# One environment for every biapy op, the cheap post-processing ones included.
+# biapy.data.post_processing imports torch, cv2, zarr and h5py at module level,
+# so even watershed_by_channels -- plain scikit-image underneath -- needs the
+# full install. If BiaPy moved those imports into the functions that use them,
+# the post-processing ops could live in a small CPU environment of their own.
+
+[system-requirements]
+cuda = "12.0"
+
+[dependencies]
+python = "3.11.*"  # BiaPy needs >=3.11
+# Nothing else from conda-forge, numpy included: everything BiaPy uses comes
+# from PyPI wheels, so one numpy, one BLAS. A conda numpy brought MKL and its
+# OpenMP alongside the wheels' OpenBLAS and private C++ runtimes, and on
+# Windows `import biapy` then died in a DLL load (0xc06d007f) inside
+# scipy.linalg, depending on import order.
+
+[activation.env]
+# UTF-8 for every stream. A worker's stdout is a pipe, which on Windows is
+# cp1252 by default, and BiaPy prints torchinfo's model summary -- box-drawing
+# characters -- so the first prediction died in a UnicodeEncodeError.
+PYTHONUTF8 = "1"
+
+[pypi-dependencies]
+# BiaPy pins torch>=2.9 and torchvision>=0.24 itself, and much else exactly
+# (bioimageio.core, timm, xarray), so torch comes from PyPI along with it
+# rather than from conda-forge.
+biapy = ">=3.7.3"  # BiaPy.load_workflow_from_model and in-memory predict()
+# The runner's worker side.
+oprunner = ">=0.1.0.dev0"
+# The collection itself, at this release's version -- once it is on PyPI,
+# which it is not yet; until then the worker imports it from the host's copy,
+# which oprunner puts on its path. Bump the pin with pyproject.toml's version.
+# biapy-ops = "==0.1.0.dev0"
